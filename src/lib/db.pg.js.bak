@@ -1,0 +1,61 @@
+import postgres from 'postgres';
+import fs from 'node:fs';
+import path from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
+
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+
+const sql = postgres(process.env.DATABASE_URL || '', {
+  ssl: 'require',
+  onnotice: () => {},
+  prepare: false,
+});
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } }) : null;
+
+function toParams(args) {
+  if (!args) return [];
+  const arr = Array.isArray(args) ? args : [args];
+  return arr;
+}
+
+function wrapResult(rows, isUpdate) {
+  if (isUpdate) return { changes: rows?.count ?? 0, lastInsertRowid: rows?.[0]?.id || rows?.[0]?.last_insert_id };
+  if (!rows || rows.length === 0) return undefined;
+  if (Array.isArray(rows) && rows.length === 1) return rows[0];
+  return rows;
+}
+
+function prepare(q) {
+  const query = String(q)
+    .replace(/lastInsertRowid/gi, 'id')
+    .replace(/\?/g, (m, i) => `$${i + 1}`);
+  return {
+    get: async (...args) => {
+      const rows = await sql.unsafe(query, toParams(args));
+      return wrapResult(rows, false);
+    },
+    all: async (...args) => {
+      const rows = await sql.unsafe(query, toParams(args));
+      return Array.isArray(rows) ? rows : [];
+    },
+    run: async (...args) => {
+      const rows = await sql.unsafe(query, toParams(args));
+      return wrapResult(rows, true);
+    },
+  };
+}
+
+async function exec(q) {
+  await sql.unsafe(String(q));
+}
+
+export default {
+  prepare,
+  exec,
+};
+export { sql };
+export const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');

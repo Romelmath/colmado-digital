@@ -1,0 +1,18 @@
+{
+  "name": "Mi Colmado Digital — Vende por WhatsApp",
+  "short_name": "ColmadoWA",
+  "description": "Catálogo digital, pedidos por WhatsApp y control de fiado para colmados y negocios de barrio.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f4",
+  "theme_color": "#0a6e3d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
